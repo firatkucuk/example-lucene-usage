@@ -5,11 +5,14 @@ package im.firat.examples.lucene.luceneusage;
 import java.io.IOException;
 import java.io.Reader;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.miscellaneous.LengthFilter;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.analysis.tr.TurkishLowerCaseFilter;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
@@ -30,15 +33,15 @@ import org.apache.lucene.util.Version;
 
 
 /**
- * Using custom analyzer
+ * Using custom filter
  */
-public class Main05 {
+public class Main06 {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public Main05() {
+    public Main06() {
 
     }
 
@@ -60,10 +63,10 @@ public class Main05 {
 
             createIndex(indexDirectory, contents);
             System.out.println("Sonuçlar:");
-            search(indexDirectory, "üç");
+            search(indexDirectory, "dokuz");
 
             System.out.println("Sonuçlar:");
-            search(indexDirectory, "ile");
+            search(indexDirectory, "dxkxz");
 
             indexDirectory.close();
         } catch (IOException e) {
@@ -137,12 +140,60 @@ public class Main05 {
             stopWords.add("ya");
             stopWords.add("da");
 
-            Tokenizer   tokenizer       = new WhitespaceTokenizer(Version.LUCENE_46, reader);
-            TokenStream lengthFilter    = new LengthFilter(Version.LUCENE_46, tokenizer, 3, 5);
-            TokenStream lowerCaseFilter = new TurkishLowerCaseFilter(lengthFilter);
-            TokenStream stopFilter      = new StopFilter(Version.LUCENE_46, lowerCaseFilter, stopWords);
+            Tokenizer   tokenizer           = new WhitespaceTokenizer(Version.LUCENE_46, reader);
+            TokenStream lengthFilter        = new LengthFilter(Version.LUCENE_46, tokenizer, 3, 5);
+            TokenStream lowerCaseFilter     = new TurkishLowerCaseFilter(lengthFilter);
+            TokenStream stopFilter          = new StopFilter(Version.LUCENE_46, lowerCaseFilter, stopWords);
+            TokenStream letterChangerFilter = new LetterChangerFilter(stopFilter);
 
-            return new TokenStreamComponents(tokenizer, stopFilter);
+            return new TokenStreamComponents(tokenizer, letterChangerFilter);
+        }
+    }
+
+    private static class LetterChangerFilter extends TokenFilter {
+
+
+
+        //~ --- [INSTANCE FIELDS] --------------------------------------------------------------------------------------
+
+        private final CharTermAttribute term = addAttribute(CharTermAttribute.class);
+
+
+
+        //~ --- [CONSTRUCTORS] -----------------------------------------------------------------------------------------
+
+        public LetterChangerFilter(TokenStream stopFilter) {
+
+            super(stopFilter);
+
+        }
+
+
+
+        //~ --- [METHODS] ----------------------------------------------------------------------------------------------
+
+        @Override
+        public boolean incrementToken() throws IOException {
+
+            if (input.incrementToken()) {
+                final char[] buffer = term.buffer();
+                final int    length = term.length();
+
+                for (int i = 0; i < length; i++) {
+                    char letter = buffer[i];
+
+                    boolean isCapital = letter == 'a' || letter == 'e' || letter == 'ı' || letter == 'i';
+                    isCapital = isCapital || letter == 'o' || letter == 'ö' || letter == 'u' || letter == 'ü';
+
+                    if (isCapital) {
+                        buffer[i] = 'x';
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
         }
     }
 }
