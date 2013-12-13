@@ -12,17 +12,19 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 
 
 
+/**
+ * Lucene index update operations
+ */
 public class Main03 {
 
 
@@ -50,6 +52,21 @@ public class Main03 {
             };
 
             createIndex(indexDirectory, contents);
+            System.out.println("Sonuçlar:");
+            search(indexDirectory, "üç");
+
+            String[] updatedContents = new String[] {
+                "bir iki üç dört",
+                "dört beş altı yedi",
+                "beş altı yedi sekiz",
+                "yedi sekiz dokuz on"
+            };
+
+            updateIndex(indexDirectory, updatedContents);
+            System.out.println("Sonuçlar:");
+            search(indexDirectory, "üç");
+
+            deleteIndex(indexDirectory, "0");
             System.out.println("Sonuçlar:");
             search(indexDirectory, "üç");
 
@@ -84,13 +101,14 @@ public class Main03 {
         }
 
         indexWriter.close();
+        analyzer.close();
     }
 
 
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private static void deleteFirst(Directory indexDirectory) throws IOException {
+    private static void deleteIndex(Directory indexDirectory, String contentNo) throws IOException {
 
         Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
         IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
@@ -98,7 +116,7 @@ public class Main03 {
         writerConfig.setOpenMode(OpenMode.CREATE_OR_APPEND);
 
         IndexWriter indexWriter = new IndexWriter(indexDirectory, writerConfig);
-        indexWriter.deleteDocuments(new Term("contentNo", "0"));
+        indexWriter.deleteDocuments(new Term("contentNo", contentNo));
         indexWriter.close();
     }
 
@@ -108,15 +126,10 @@ public class Main03 {
 
     private static void search(Directory indexDirectory, String searchTerm) throws IOException, ParseException {
 
-        String searchField = "content";
-
-        Analyzer      analyzer  = new StandardAnalyzer(Version.LUCENE_46);
-        QueryParser   parser    = new QueryParser(Version.LUCENE_46, searchField, analyzer);
         IndexReader   reader    = DirectoryReader.open(indexDirectory);
         IndexSearcher searcher  = new IndexSearcher(reader);
-        Query         query     = parser.parse(searchTerm);
-        TopDocs       topDocs   = searcher.search(query, 10);
-        ScoreDoc[]    scoreDocs = topDocs.scoreDocs;
+        Query         query     = new TermQuery(new Term("content", searchTerm));
+        ScoreDoc[]    scoreDocs = searcher.search(query, 10).scoreDocs;
 
         for (int i = 0; i < scoreDocs.length; i++) {
             Document document = searcher.doc(scoreDocs[i].doc);

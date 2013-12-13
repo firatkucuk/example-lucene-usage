@@ -5,18 +5,17 @@ package im.firat.examples.lucene.luceneusage;
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.*;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.*;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
@@ -86,6 +85,7 @@ public class Main01 {
         }
 
         indexWriter.close();
+        analyzer.close();
     }
 
 
@@ -94,15 +94,10 @@ public class Main01 {
 
     private static void search(Directory indexDirectory, String searchTerm) throws IOException, ParseException {
 
-        String searchField = "content";
-
-        Analyzer      analyzer  = new StandardAnalyzer(Version.LUCENE_46);
-        QueryParser   parser    = new QueryParser(Version.LUCENE_46, searchField, analyzer);
         IndexReader   reader    = DirectoryReader.open(indexDirectory);
         IndexSearcher searcher  = new IndexSearcher(reader);
-        Query         query     = parser.parse(searchTerm);
-        TopDocs       topDocs   = searcher.search(query, 10);
-        ScoreDoc[]    scoreDocs = topDocs.scoreDocs;
+        Query         query     = new TermQuery(new Term("content", searchTerm));
+        ScoreDoc[]    scoreDocs = searcher.search(query, 10).scoreDocs;
 
         for (int i = 0; i < scoreDocs.length; i++) {
             Document document = searcher.doc(scoreDocs[i].doc);
