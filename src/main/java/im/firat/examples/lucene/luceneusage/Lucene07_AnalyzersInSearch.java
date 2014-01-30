@@ -11,8 +11,8 @@ import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.miscellaneous.LengthFilter;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.analysis.tr.TurkishLowerCaseFilter;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
@@ -33,15 +33,15 @@ import org.apache.lucene.util.Version;
 
 
 /**
- * Using custom filter
+ * Using analyzers in search
  */
-public class Main06 {
+public class Lucene07_AnalyzersInSearch {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public Main06() {
+    public Lucene07_AnalyzersInSearch() {
 
     }
 
@@ -165,7 +165,6 @@ public class Main06 {
         public LetterChangerFilter(TokenStream stopFilter) {
 
             super(stopFilter);
-
         }
 
 

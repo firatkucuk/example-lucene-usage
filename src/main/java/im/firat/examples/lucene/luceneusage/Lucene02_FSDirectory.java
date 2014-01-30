@@ -2,14 +2,10 @@
 package im.firat.examples.lucene.luceneusage;
 
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -22,21 +18,21 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 
 
 /**
- * Using stop analyzer
+ * Lucene HelloWorld with filesystem directory
  */
-public class Main04 {
+public class Lucene02_FSDirectory {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public Main04() {
+    public Lucene02_FSDirectory() {
 
     }
 
@@ -48,12 +44,12 @@ public class Main04 {
 
         try {
 
-            Directory indexDirectory = new RAMDirectory();
+            Directory indexDirectory = FSDirectory.open(new File("index"));
             String[]  contents       = new String[] {
-                "bir ve iki ve üç ve dört",
-                "üç ve dört ve beş ile altı",
-                "beş ya da altı ya da yedi ve sekiz",
-                "yedi ile sekiz ve dokuz ya da on"
+                "bir iki üç dört",
+                "üç dört beş altı",
+                "beş altı yedi sekiz",
+                "yedi sekiz dokuz on"
             };
 
             createIndex(indexDirectory, contents);
@@ -73,13 +69,7 @@ public class Main04 {
 
     private static void createIndex(Directory indexDirectory, String[] contents) throws IOException {
 
-        CharArraySet stopWords = new CharArraySet(Version.LUCENE_46, 4, true);
-        stopWords.add("ve");
-        stopWords.add("ile");
-        stopWords.add("ya");
-        stopWords.add("da");
-
-        Analyzer          analyzer     = new StopAnalyzer(Version.LUCENE_46, stopWords);
+        Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
         IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
 
         writerConfig.setOpenMode(OpenMode.CREATE);

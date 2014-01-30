@@ -2,7 +2,6 @@
 package im.firat.examples.lucene.luceneusage;
 
 
-import java.io.File;
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -18,21 +17,21 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 
 
 
 /**
- * Lucene HelloWorld with filesystem directory
+ * Lucene HelloWorld
  */
-public class Main02 {
+public class Lucene01_HelloWorld {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public Main02() {
+    public Lucene01_HelloWorld() {
 
     }
 
@@ -44,7 +43,7 @@ public class Main02 {
 
         try {
 
-            Directory indexDirectory = FSDirectory.open(new File("index"));
+            Directory indexDirectory = new RAMDirectory();
             String[]  contents       = new String[] {
                 "bir iki üç dört",
                 "üç dört beş altı",

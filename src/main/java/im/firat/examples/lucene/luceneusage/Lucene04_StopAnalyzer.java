@@ -3,8 +3,13 @@ package im.firat.examples.lucene.luceneusage;
 
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -23,15 +28,15 @@ import org.apache.lucene.util.Version;
 
 
 /**
- * Lucene HelloWorld
+ * Using stop analyzer
  */
-public class Main01 {
+public class Lucene04_StopAnalyzer {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public Main01() {
+    public Lucene04_StopAnalyzer() {
 
     }
 
@@ -45,10 +50,10 @@ public class Main01 {
 
             Directory indexDirectory = new RAMDirectory();
             String[]  contents       = new String[] {
-                "bir iki üç dört",
-                "üç dört beş altı",
-                "beş altı yedi sekiz",
-                "yedi sekiz dokuz on"
+                "bir ve iki ve üç ve dört",
+                "üç ve dört ve beş ile altı",
+                "beş ya da altı ya da yedi ve sekiz",
+                "yedi ile sekiz ve dokuz ya da on"
             };
 
             createIndex(indexDirectory, contents);
@@ -68,7 +73,13 @@ public class Main01 {
 
     private static void createIndex(Directory indexDirectory, String[] contents) throws IOException {
 
-        Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
+        CharArraySet stopWords = new CharArraySet(Version.LUCENE_46, 4, true);
+        stopWords.add("ve");
+        stopWords.add("ile");
+        stopWords.add("ya");
+        stopWords.add("da");
+
+        Analyzer          analyzer     = new StopAnalyzer(Version.LUCENE_46, stopWords);
         IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
 
         writerConfig.setOpenMode(OpenMode.CREATE);

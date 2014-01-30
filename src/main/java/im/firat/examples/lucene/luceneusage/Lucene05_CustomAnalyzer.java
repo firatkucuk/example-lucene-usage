@@ -3,8 +3,18 @@ package im.firat.examples.lucene.luceneusage;
 
 
 import java.io.IOException;
+import java.io.Reader;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.TokenFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.core.WhitespaceTokenizer;
+import org.apache.lucene.analysis.en.PorterStemFilter;
+import org.apache.lucene.analysis.miscellaneous.LengthFilter;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tr.TurkishLowerCaseFilter;
+import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -23,15 +33,15 @@ import org.apache.lucene.util.Version;
 
 
 /**
- * Lucene index update operations
+ * Using custom analyzer, chaining filters and using stemmer
  */
-public class Main03 {
+public class Lucene05_CustomAnalyzer {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public Main03() {
+    public Lucene05_CustomAnalyzer() {
 
     }
 
@@ -45,30 +55,22 @@ public class Main03 {
 
             Directory indexDirectory = new RAMDirectory();
             String[]  contents       = new String[] {
-                "bir iki üç dört",
-                "üç dört beş altı",
-                "beş altı yedi sekiz",
-                "yedi sekiz dokuz on"
+                "bir ve iki ve üç ve dört",
+                "üç ve dört ve beş ile altı",
+                "beş ya da ALTI ya da YEDİ ve sekiz",
+                "yedi ile sekiz ve dokuz ya da on",
+                "going coming came"
             };
 
             createIndex(indexDirectory, contents);
             System.out.println("Sonuçlar:");
             search(indexDirectory, "üç");
 
-            String[] updatedContents = new String[] {
-                "bir iki üç dört",
-                "dört beş altı yedi",
-                "beş altı yedi sekiz",
-                "yedi sekiz dokuz on"
-            };
-
-            updateIndex(indexDirectory, updatedContents);
             System.out.println("Sonuçlar:");
-            search(indexDirectory, "üç");
+            search(indexDirectory, "ile");
 
-            deleteIndex(indexDirectory, "0");
             System.out.println("Sonuçlar:");
-            search(indexDirectory, "üç");
+            search(indexDirectory, "go");
 
             indexDirectory.close();
         } catch (IOException e) {
@@ -84,7 +86,7 @@ public class Main03 {
 
     private static void createIndex(Directory indexDirectory, String[] contents) throws IOException {
 
-        Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
+        Analyzer          analyzer     = new CustomAnalyzer();
         IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
 
         writerConfig.setOpenMode(OpenMode.CREATE);
@@ -108,22 +110,6 @@ public class Main03 {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
-    private static void deleteIndex(Directory indexDirectory, String contentNo) throws IOException {
-
-        Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
-        IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
-
-        writerConfig.setOpenMode(OpenMode.CREATE_OR_APPEND);
-
-        IndexWriter indexWriter = new IndexWriter(indexDirectory, writerConfig);
-        indexWriter.deleteDocuments(new Term("contentNo", contentNo));
-        indexWriter.close();
-    }
-
-
-
-    //~ ----------------------------------------------------------------------------------------------------------------
-
     private static void search(Directory indexDirectory, String searchTerm) throws IOException, ParseException {
 
         IndexReader   reader    = DirectoryReader.open(indexDirectory);
@@ -141,31 +127,67 @@ public class Main03 {
 
 
 
-    //~ ----------------------------------------------------------------------------------------------------------------
+    //~ --- [INNER CLASSES] --------------------------------------------------------------------------------------------
 
-    private static void updateIndex(Directory indexDirectory, String[] contents) {
+    private static class CustomAnalyzer extends Analyzer {
 
-        try {
-            Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
-            IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
 
-            writerConfig.setOpenMode(OpenMode.CREATE_OR_APPEND);
 
-            IndexWriter indexWriter = new IndexWriter(indexDirectory, writerConfig);
+        //~ --- [METHODS] ----------------------------------------------------------------------------------------------
 
-            for (int i = 0; i < contents.length; i++) {
-                Document document = new Document();
-                String   content  = contents[i];
+        @Override
+        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
 
-                document.add(new TextField("content", content, Field.Store.NO));
-                document.add(new StringField("contentNo", i + "", Field.Store.YES));
+            CharArraySet stopWords = new CharArraySet(Version.LUCENE_46, 4, true);
+            stopWords.add("ve");
+            stopWords.add("ile");
+            stopWords.add("ya");
+            stopWords.add("da");
 
-                indexWriter.updateDocument(new Term("contentNo", i + ""), document);
+            Tokenizer        tokenizer       = new WhitespaceTokenizer(Version.LUCENE_46, reader);
+            TokenStream      lengthFilter    = new LengthFilter(Version.LUCENE_46, tokenizer, 3, 5);
+            TokenStream      lowerCaseFilter = new TurkishLowerCaseFilter(lengthFilter);
+            TokenStream      stopFilter      = new StopFilter(Version.LUCENE_46, lowerCaseFilter, stopWords);
+            PorterStemFilter stemFilter      = new PorterStemFilter(stopFilter);
+
+            return new TokenStreamComponents(tokenizer, stemFilter);
+        }
+    }
+
+
+    private static class PrintFilter extends TokenFilter {
+
+
+
+        //~ --- [INSTANCE FIELDS] --------------------------------------------------------------------------------------
+
+        private final CharTermAttribute term = addAttribute(CharTermAttribute.class);
+
+
+
+        //~ --- [CONSTRUCTORS] -----------------------------------------------------------------------------------------
+
+        protected PrintFilter(TokenStream input) {
+
+            super(input);
+        }
+
+
+
+        //~ --- [METHODS] ----------------------------------------------------------------------------------------------
+
+        @Override
+        public boolean incrementToken() throws IOException {
+
+            if (input.incrementToken()) {
+                System.out.print("[" + term + "]");
+
+                return true;
             }
 
-            indexWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println();
+
+            return false;
         }
     }
 }

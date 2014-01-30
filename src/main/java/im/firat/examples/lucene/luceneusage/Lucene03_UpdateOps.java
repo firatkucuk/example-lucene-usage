@@ -3,19 +3,9 @@ package im.firat.examples.lucene.luceneusage;
 
 
 import java.io.IOException;
-import java.io.Reader;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.core.StopFilter;
-import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.apache.lucene.analysis.miscellaneous.LengthFilter;
-import org.apache.lucene.analysis.tr.TurkishLowerCaseFilter;
-import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -30,15 +20,15 @@ import org.apache.lucene.util.Version;
 
 
 /**
- * Using custom analyzer
+ * Lucene index update operations
  */
-public class Main05 {
+public class Lucene03_UpdateOps {
 
 
 
     //~ --- [CONSTRUCTORS] ---------------------------------------------------------------------------------------------
 
-    public Main05() {
+    public Lucene03_UpdateOps() {
 
     }
 
@@ -52,18 +42,30 @@ public class Main05 {
 
             Directory indexDirectory = new RAMDirectory();
             String[]  contents       = new String[] {
-                "bir ve iki ve üç ve dört",
-                "üç ve dört ve beş ile altı",
-                "beş ya da ALTI ya da YEDİ ve sekiz",
-                "yedi ile sekiz ve dokuz ya da on"
+                "bir iki üç dört",
+                "üç dört beş altı",
+                "beş altı yedi sekiz",
+                "yedi sekiz dokuz on"
             };
 
             createIndex(indexDirectory, contents);
             System.out.println("Sonuçlar:");
             search(indexDirectory, "üç");
 
+            String[] updatedContents = new String[] {
+                "bir iki üç dört",
+                "dört beş altı yedi",
+                "beş altı yedi sekiz",
+                "yedi sekiz dokuz on"
+            };
+
+            updateIndex(indexDirectory, updatedContents);
             System.out.println("Sonuçlar:");
-            search(indexDirectory, "ile");
+            search(indexDirectory, "üç");
+
+            deleteIndex(indexDirectory, "0");
+            System.out.println("Sonuçlar:");
+            search(indexDirectory, "üç");
 
             indexDirectory.close();
         } catch (IOException e) {
@@ -79,7 +81,7 @@ public class Main05 {
 
     private static void createIndex(Directory indexDirectory, String[] contents) throws IOException {
 
-        Analyzer          analyzer     = new CustomAnalyzer();
+        Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
         IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
 
         writerConfig.setOpenMode(OpenMode.CREATE);
@@ -103,6 +105,22 @@ public class Main05 {
 
     //~ ----------------------------------------------------------------------------------------------------------------
 
+    private static void deleteIndex(Directory indexDirectory, String contentNo) throws IOException {
+
+        Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
+        IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
+
+        writerConfig.setOpenMode(OpenMode.CREATE_OR_APPEND);
+
+        IndexWriter indexWriter = new IndexWriter(indexDirectory, writerConfig);
+        indexWriter.deleteDocuments(new Term("contentNo", contentNo));
+        indexWriter.close();
+    }
+
+
+
+    //~ ----------------------------------------------------------------------------------------------------------------
+
     private static void search(Directory indexDirectory, String searchTerm) throws IOException, ParseException {
 
         IndexReader   reader    = DirectoryReader.open(indexDirectory);
@@ -120,29 +138,31 @@ public class Main05 {
 
 
 
-    //~ --- [INNER CLASSES] --------------------------------------------------------------------------------------------
+    //~ ----------------------------------------------------------------------------------------------------------------
 
-    private static class CustomAnalyzer extends Analyzer {
+    private static void updateIndex(Directory indexDirectory, String[] contents) {
 
+        try {
+            Analyzer          analyzer     = new StandardAnalyzer(Version.LUCENE_46);
+            IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_46, analyzer);
 
+            writerConfig.setOpenMode(OpenMode.CREATE_OR_APPEND);
 
-        //~ --- [METHODS] ----------------------------------------------------------------------------------------------
+            IndexWriter indexWriter = new IndexWriter(indexDirectory, writerConfig);
 
-        @Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+            for (int i = 0; i < contents.length; i++) {
+                Document document = new Document();
+                String   content  = contents[i];
 
-            CharArraySet stopWords = new CharArraySet(Version.LUCENE_46, 4, true);
-            stopWords.add("ve");
-            stopWords.add("ile");
-            stopWords.add("ya");
-            stopWords.add("da");
+                document.add(new TextField("content", content, Field.Store.NO));
+                document.add(new StringField("contentNo", i + "", Field.Store.YES));
 
-            Tokenizer   tokenizer       = new WhitespaceTokenizer(Version.LUCENE_46, reader);
-            TokenStream lengthFilter    = new LengthFilter(Version.LUCENE_46, tokenizer, 3, 5);
-            TokenStream lowerCaseFilter = new TurkishLowerCaseFilter(lengthFilter);
-            TokenStream stopFilter      = new StopFilter(Version.LUCENE_46, lowerCaseFilter, stopWords);
+                indexWriter.updateDocument(new Term("contentNo", i + ""), document);
+            }
 
-            return new TokenStreamComponents(tokenizer, stopFilter);
+            indexWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
